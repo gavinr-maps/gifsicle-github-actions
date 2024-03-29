@@ -1,0 +1,49 @@
+name: Build and Deploy
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies for optimization
+        shell: bash
+        run: |
+          sudo apt-get install gifsicle -y;
+
+      - name: Info size
+        shell: bash
+        run: stat test.gif
+
+      - name: Optimize GIFs
+        shell: bash
+        run: |
+          find . -type f \( -iname "*.gif" \) -exec gifsicle --batch -O '{}' '#0' \;
+          find . -type f \( -iname "*.gif" \) -exec gifsicle --no-extensions --optimize --lossy=40 --batch -O '{}' \;
+
+      - name: Info size
+        shell: bash
+        run: stat test.gif
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
